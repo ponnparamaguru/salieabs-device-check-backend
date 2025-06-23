@@ -8,7 +8,7 @@ MQTT_PORT = 1883
 MQTT_TOPIC = "GS2526002_OUT"
 
 def on_connect(client, userdata, flags, rc):
-    print("✅ Connected with result code", rc)
+    print("Connected with result code", rc)
     client.subscribe(MQTT_TOPIC)
 
 def on_message(client, userdata, msg):
@@ -38,7 +38,7 @@ def on_message(client, userdata, msg):
         db.commit()
         db.close()
 
-        print(f"📡 {device_id} → {'ON' if online else 'OFF'} @ {last_ping}")
+        # print(f"📡 {device_id} → {'ON' if online else 'OFF'} @ {last_ping}")
 
     except Exception as e:
         print("❌ Error handling message:", e)
