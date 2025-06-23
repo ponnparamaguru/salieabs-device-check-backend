@@ -15,25 +15,30 @@ def on_message(client, userdata, msg):
     try:
         payload = json.loads(msg.payload.decode())
         device_id = payload.get("device_uid")
+        status = payload.get("Status")
         timestamp = payload.get("timestamp")
 
-        if not device_id or not timestamp:
+        if not device_id or status is None or not timestamp:
             return
 
-        last_ping = datetime.now()  # You could parse timestamp if it's reliable
+        # Parse online status from Status string
+        online = status == "1"
+        last_ping = datetime.now()  # Optional: parse `timestamp` for accuracy
 
         db = SessionLocal()
         device = db.query(Device).filter(Device.device_id == device_id).first()
 
         if device:
             device.last_ping = last_ping
-            device.online = True
+            device.online = online
         else:
-            device = Device(device_id=device_id, last_ping=last_ping, online=True)
+            device = Device(device_id=device_id, last_ping=last_ping, online=online)
             db.add(device)
 
         db.commit()
         db.close()
+
+        print(f"📡 {device_id} → {'ON' if online else 'OFF'} @ {last_ping}")
 
     except Exception as e:
         print("❌ Error handling message:", e)
