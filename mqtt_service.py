@@ -50,3 +50,8 @@ def start_mqtt():
 
     client.connect(MQTT_BROKER, MQTT_PORT, 60)
     client.loop_start()
+
+if __name__ == "__main__":
+    start_mqtt()
+    while True:
+        pass
