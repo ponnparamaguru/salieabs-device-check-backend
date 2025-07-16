@@ -1,24 +1,16 @@
 from fastapi import FastAPI, Depends, Query
-from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from database import SessionLocal, Device, DeviceStatusHistory
+from database import SessionLocal, Base, engine, Device, DeviceStatusHistory
 from mqtt_service import start_mqtt
 from datetime import datetime
+from typing import List
 
+Base.metadata.create_all(bind=engine)
 app = FastAPI()
-
-# ✅ Allow ALL origins for development/testing
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # ⚠️ Allow all origins (only for dev!)
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # Start MQTT listener
 start_mqtt()
 
+# DB Dependency
 def get_db():
     db = SessionLocal()
     try:
@@ -41,8 +33,8 @@ def get_device(device_id: str, db: Session = Depends(get_db)):
 def get_device_history(
     device_id: str,
     start: datetime = Query(...),
-    end: datetime = Query(...)
-    , db: Session = Depends(get_db)
+    end: datetime = Query(...),
+    db: Session = Depends(get_db)
 ):
     data = db.query(DeviceStatusHistory).filter(
         DeviceStatusHistory.device_id == device_id,
@@ -54,6 +46,5 @@ def get_device_history(
         {
             "timestamp": d.timestamp.isoformat(),
             "online": d.online
-        }
-        for d in data
+        } for d in data
     ]
