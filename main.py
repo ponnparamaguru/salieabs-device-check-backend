@@ -1,8 +1,9 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from database import SessionLocal, Device
+from database import SessionLocal, Device, DeviceStatusHistory
 from mqtt_service import start_mqtt
+from datetime import datetime
 
 app = FastAPI()
 
@@ -35,3 +36,24 @@ def get_device(device_id: str, db: Session = Depends(get_db)):
     if device:
         return device
     return {"error": "Device not found"}
+
+@app.get("/devices/{device_id}/status-history")
+def get_device_history(
+    device_id: str,
+    start: datetime = Query(...),
+    end: datetime = Query(...)
+    , db: Session = Depends(get_db)
+):
+    data = db.query(DeviceStatusHistory).filter(
+        DeviceStatusHistory.device_id == device_id,
+        DeviceStatusHistory.timestamp >= start,
+        DeviceStatusHistory.timestamp <= end
+    ).order_by(DeviceStatusHistory.timestamp).all()
+
+    return [
+        {
+            "timestamp": d.timestamp.isoformat(),
+            "online": d.online
+        }
+        for d in data
+    ]

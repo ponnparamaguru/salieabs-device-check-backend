@@ -1,7 +1,7 @@
 import json
 import paho.mqtt.client as mqtt
-from datetime import datetime
-from database import SessionLocal, Device
+from datetime import datetime, timedelta
+from database import SessionLocal, Device, DeviceStatusHistory
 
 MQTT_BROKER = "iot.salieabs.in"
 MQTT_PORT = 1883
@@ -11,34 +11,45 @@ def on_connect(client, userdata, flags, rc):
     print("Connected with result code", rc)
     client.subscribe(MQTT_TOPIC)
 
+last_written = {}
+
 def on_message(client, userdata, msg):
     try:
         payload = json.loads(msg.payload.decode())
         device_id = payload.get("device_uid")
         status = payload.get("Status")
-        timestamp = payload.get("timestamp")
 
-        if not device_id or status is None or not timestamp:
+        if not device_id or status is None:
             return
 
-        # Parse online status from Status string
         online = status == "1"
-        last_ping = datetime.now()  # Optional: parse `timestamp` for accuracy
+        now = datetime.utcnow()
 
-        db = SessionLocal()
-        device = db.query(Device).filter(Device.device_id == device_id).first()
+        # Only insert into history if 60 seconds have passed
+        last_time = last_written.get(device_id)
+        if not last_time or (now - last_time) >= timedelta(minutes=1):
+            db = SessionLocal()
+            # Save status to history
+            history = DeviceStatusHistory(
+                device_id=device_id,
+                online=online,
+                timestamp=now
+            )
+            db.add(history)
 
-        if device:
-            device.last_ping = last_ping
-            device.online = online
-        else:
-            device = Device(device_id=device_id, last_ping=last_ping, online=online)
-            db.add(device)
+            # Also update current status
+            device = db.query(Device).filter(Device.device_id == device_id).first()
+            if device:
+                device.last_ping = now
+                device.online = online
+            else:
+                device = Device(device_id=device_id, last_ping=now, online=online)
+                db.add(device)
 
-        db.commit()
-        db.close()
+            db.commit()
+            db.close()
 
-        # print(f"📡 {device_id} → {'ON' if online else 'OFF'} @ {last_ping}")
+            last_written[device_id] = now
 
     except Exception as e:
         print("❌ Error handling message:", e)

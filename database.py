@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, String, DateTime, Boolean
+from sqlalchemy import create_engine, Column, String, DateTime, Boolean, Integer
 from sqlalchemy.orm import declarative_base, sessionmaker
 from datetime import datetime
 
@@ -16,3 +16,11 @@ class Device(Base):
     online = Column(Boolean, default=True)
 
 Base.metadata.create_all(bind=engine)
+
+class DeviceStatusHistory(Base):
+    __tablename__ = "device_status_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    device_id = Column(String, index=True)
+    online = Column(Boolean, default=False)
+    timestamp = Column(DateTime, default=datetime.utcnow)
