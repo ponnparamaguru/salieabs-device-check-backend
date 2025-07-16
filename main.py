@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, Query
 from sqlalchemy.orm import Session
 from database import SessionLocal, Base, engine, Device, DeviceStatusHistory
 from mqtt_service import start_mqtt
-from datetime import datetime
+from datetime import datetime, time, timedelta
 from typing import List
 
 Base.metadata.create_all(bind=engine)
@@ -32,8 +32,8 @@ def get_device(device_id: str, db: Session = Depends(get_db)):
 @app.get("/devices/{device_id}/status-history")
 def get_device_history(
     device_id: str,
-    start: datetime = Query(...),
-    end: datetime = Query(...),
+    start: datetime = Query(default_factory=lambda: datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)),
+    end: datetime = Query(default_factory=lambda: datetime.now().replace(hour=23, minute=59, second=59, microsecond=999999)),
     db: Session = Depends(get_db)
 ):
     data = db.query(DeviceStatusHistory).filter(
