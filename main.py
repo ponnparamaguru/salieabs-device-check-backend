@@ -4,9 +4,19 @@ from database import SessionLocal, Base, engine, Device, DeviceStatusHistory
 from mqtt_service import start_mqtt
 from datetime import datetime, time, timedelta
 from typing import List
+from fastapi.middleware.cors import CORSMiddleware
 
 Base.metadata.create_all(bind=engine)
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Or restrict to ['http://localhost:8081']
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Start MQTT listener
 start_mqtt()
 
